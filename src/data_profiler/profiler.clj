@@ -8,7 +8,7 @@
 (defn fields [coll] 
   (reduce into #{} (map keys coll)))
 
-(defn pivot [coll] 
+(defn pivot [fields coll] 
   (apply merge (for [field (fields coll)]
                  {field (mapv field coll)})))
 
@@ -20,10 +20,15 @@
                     (cond (re-matches #"[a-z]" s) "a"
                           (re-matches #"[0-9]" s) "n"
                           (re-matches #"[A-Z]" s) "A"
-                          :else s))) (str x)))))
+                          :else s))) 
+          (str x)))))
 
+(defn where [f field x rows]
+  (filter #(= x (f (field %))) rows))
 
+(defn base-profile [rows]
+  {:rows rows})
 
-
-
-
+(defn profile-fields [profile]
+  (assoc profile :fields (let [by-field (pivot (:rows profile))]
+                           {:formats (mapv codify-format)})))
