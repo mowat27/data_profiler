@@ -88,19 +88,32 @@
               <thead>
                 <tr>
                   <th>Field</th>
-                  <th>Formats</td>
+                  <th>Uniqueness</th>
+                  <th>Profile</td>
                 </tr>
               </thead>
               <tbody>
 		{{#fields}}
                 <tr>
                   <td>{{ name }}</td>
+                  <td>{{ uniqueness }}%</td>
                   <td>
-                    <ul>
-                    {{#formats}}
-                      <li>{{ format }} - {{ count }}</li>
-                    {{/formats}}
-                    </ul>
+                    <table class="table table-striped">
+                      <thead>
+                        <tr>
+                          <th>Format</th>
+                          <th>Count</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {{#formats}}
+                          <tr>
+                            <td>{{format}}</td>
+                            <td>{{count}}</td>
+                          </tr>
+                        {{/formats}}
+                      </tbody>
+                    </table>
                   </td>
                 </tr>
                 {{/fields}}

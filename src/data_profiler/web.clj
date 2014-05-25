@@ -32,6 +32,8 @@
        (sort-by :count)
        reverse))
 
+(defn pct [total-values num-values] (* 100 (float (/ num-values total-values))))
+
 (defn show-profile [req]
   (let [source (-> req :route-params :file-name)
         uri (get available-files (keyword source))
@@ -45,17 +47,23 @@
                                :base-profile (profiler/base-profile rows)
                                :fields (for [field (profiler/fields rows)]
                                          {:name    (name field)
+                                          :uniqueness (->> (map field rows)
+                                                           set
+                                                           count
+                                                           (pct (count rows)))
                                           :formats (render-formats field rows)})})}
       {:status 404 
        :bosy (format "<h1>Cannot find and data for %s</h1>" source)})))
 
 (->> (:elements available-files) 
      csv/parse 
-     (map (comp profiler/codify-format :element))
-     (map #(hash-map :format %)))
+     (map :element)
+     set
+     count
+     (pct 10))
 
 (def router (wrap-reload (bidi/make-handler ["/" {"index.html" (index)
-                                      ["profile/" :file-name] show-profile}])))
+                                                  ["profile/" :file-name] show-profile}])))
 
 (defn -main [& args] 
   (let [port (or (first args) "8080")] 
