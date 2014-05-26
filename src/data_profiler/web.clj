@@ -20,9 +20,8 @@
 (defn index [] 
   (using-layout :application (fn [_] "<p>Hello World</p>")))
 
-(defn render-formats [field rows]
-  (->> rows
-       (map (comp profiler/codify-format field))
+(defn render-formats [values]
+  (->> (map profiler/codify-format values)
        frequencies
        (map #(hash-map :format (let [x (first %)]
                                  (cond (nil? x) "nil"
@@ -32,26 +31,25 @@
        (sort-by :count)
        reverse))
 
-(defn pct [total-values num-values] (* 100 (float (/ num-values total-values))))
+(defn pct [num-values total-values] (* 100 (float (/ num-values total-values))))
 
 (defn show-profile [req]
   (let [source (-> req :route-params :file-name)
         uri (get available-files (keyword source))
         rows (when uri (csv/parse uri))] 
     (if rows
-      {:status 200 
-       :body (render-resource "views/layouts/dashboard.mustache"
-                              {:name source
-                               :source uri
-                               :row-count (count rows)
-                               :base-profile (profiler/base-profile rows)
-                               :fields (for [field (profiler/fields rows)]
-                                         {:name    (name field)
-                                          :uniqueness (->> (map field rows)
-                                                           set
-                                                           count
-                                                           (pct (count rows)))
-                                          :formats (render-formats field rows)})})}
+      (let [num-rows (count rows)] 
+        {:status 200 
+         :body (render-resource "views/layouts/dashboard.mustache"
+                                {:name source
+                                 :source uri
+                                 :row-count num-rows
+                                 :base-profile (profiler/base-profile rows)
+                                 :fields (for [field (profiler/fields rows)]
+                                           (let [values (profiler/values rows)]
+                                            {:name       (name field)
+                                             :uniqueness (pct (count (distinct values)) num-rows)
+                                             :formats    (render-formats (map field rows))}))})})
       {:status 404 
        :bosy (format "<h1>Cannot find and data for %s</h1>" source)})))
 

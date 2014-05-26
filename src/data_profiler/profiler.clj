@@ -23,6 +23,13 @@
                           :else s))) 
           (str x)))))
 
+(defn values [field rows & {:keys [distinct]}]
+  (let [distinct (or distinct false)
+        all (map #(get % field) rows)]
+    (if distinct 
+      (clojure.core/distinct all)
+      all)))
+
 (defn where [f field x rows]
   (filter #(= x (f (field %))) rows))
 
