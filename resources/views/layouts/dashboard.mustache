@@ -9,9 +9,9 @@
     <title>Profile Results</title>
 
     <!-- Bootstrap core CSS -->
-      <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css"/>
-      <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css"/>
-      <link rel="stylesheet" href="//getbootstrap.com/examples/dashboard/dashboard.css"/> 
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css"/>
+    <link rel="stylesheet" href="//getbootstrap.com/examples/dashboard/dashboard.css"/> 
   </head>
 
   <body>
@@ -36,119 +36,149 @@
           </ul>
           <form class="navbar-form navbar-right">
             <input type="text" class="form-control" placeholder="Search...">
-          </form>
-        </div>
+            </form>
+          </div>
+	</div>
       </div>
-    </div>
 
-    <div class="container-fluid">
-      <div class="row">
-        <div class="col-sm-3 col-md-2 sidebar">
-          <ul class="nav nav-sidebar">
-            <li class="active"><a href="#">Overview</a></li>
-            <li><a href="#">Reports</a></li>
-            <li><a href="#">Analytics</a></li>
-            <li><a href="#">Export</a></li>
-          </ul>
-          <ul class="nav nav-sidebar">
-            <li><a href="">Nav item</a></li>
-            <li><a href="">Nav item again</a></li>
-            <li><a href="">One more nav</a></li>
-            <li><a href="">Another nav item</a></li>
-            <li><a href="">More navigation</a></li>
-          </ul>
-          <ul class="nav nav-sidebar">
-            <li><a href="">Nav item again</a></li>
-            <li><a href="">One more nav</a></li>
-            <li><a href="">Another nav item</a></li>
-          </ul>
-        </div>
-        <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-          <h1 class="page-header">Profile Results</h1>
-          <table class="table table-striped">
-	    <thead>
-	      <tr>
-		<th>Name</th>
-		<th>Source</th>
-		<th>Row Count</th>
-	      </tr>
-	    </thead>
-            <tbody>
-              <tr>
-		<td>{{ name }}</td>
-                <td>{{ source }}</td>
-		<td>{{ row-count }}</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <h2 class="sub-header">Fields</h2>
-          <div class="table-responsive">
+      <div class="container-fluid">
+	<div class="row">
+          <div class="col-sm-3 col-md-2 sidebar">
+            <ul class="nav nav-sidebar">
+              <li class="active"><a href="#">Overview</a></li>
+              <li><a href="#">Reports</a></li>
+              <li><a href="#">Analytics</a></li>
+              <li><a href="#">Export</a></li>
+            </ul>
+            <ul class="nav nav-sidebar">
+              <li><a href="">Nav item</a></li>
+              <li><a href="">Nav item again</a></li>
+              <li><a href="">One more nav</a></li>
+              <li><a href="">Another nav item</a></li>
+              <li><a href="">More navigation</a></li>
+            </ul>
+            <ul class="nav nav-sidebar">
+              <li><a href="">Nav item again</a></li>
+              <li><a href="">One more nav</a></li>
+              <li><a href="">Another nav item</a></li>
+            </ul>
+          </div>
+          <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
+            <h1 class="page-header">Profile Results</h1>
             <table class="table table-striped">
-              <thead>
-                <tr>
-                  <th>Field</th>
-                  <th>Uniqueness</th>
-                  <th>Profile</td>
-                </tr>
-              </thead>
+	      <thead>
+		<tr>
+		  <th>Name</th>
+		  <th>Source</th>
+		  <th>Row Count</th>
+		</tr>
+	      </thead>
               <tbody>
-		{{#fields}}
-                <tr>
-                  <td>{{ name }}</td>
-                  <td>{{ uniqueness }}%</td>
-                  <td>
-                    <!-- Formats -->
-                    <table class="table table-striped">
-                      <thead>
-                        <tr>
-                          <th>Format</th>
-                          <th>Count</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {{#formats}}
-                          <tr>
-                            <td>{{format}}</td>
-                            <td>{{count}}</td>
-                          </tr>
-                        {{/formats}}
-                      </tbody>
-                    </table>
-
-                    <!-- Values -->
-                    <table class="table table-striped">
-                      <thead>
-                        <tr>
-                          <th>Value</th>
-                          <th>Count</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {{#common-values}}
-                          <tr>
-                            <td>{{value}}</td>
-                            <td>{{count}}</td>
-                          </tr>
-                        {{/common-values}}
-                      </tbody>
-                    </table>
-
-
-                  </td>
-                </tr>
-                {{/fields}}
+		<tr>
+		  <td>{{ name }}</td>
+                  <td>{{ source }}</td>
+		  <td>{{ row-count }}</td>
+		</tr>
               </tbody>
             </table>
-          </div>
-        </div>
-      </div>
-    </div>
 
-    <!-- Bootstrap core JavaScript
-    ================================================== -->
-    <!-- Placed at the end of the document so the pages load faster -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
-    <script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
-  </body>
-</html>
+            <h2 class="sub-header">Fields</h2>
+            <div class="table-responsive">
+              <table class="table table-striped">
+		<thead>
+                  <tr>
+                    <th>Field</th>
+                    <th>Uniqueness</th>
+                    <th>Profile</td>
+                  </tr>
+		</thead>
+		<tbody>
+		  {{#fields}}
+                  <tr>
+                    <td>{{ name }}</td>
+                    <td>{{ uniqueness }}%</td>
+                    <td>
+		      <div class="panel-group" id="accordion">
+			<div class="panel panel-default">
+			  <div class="panel-heading">
+			    <h4 class="panel-title">
+			      <a data-toggle="collapse" data-parent="#accordion" href="#collapseFormat{{name}}">
+				Data Formats
+			      </a>
+			    </h4>
+			  </div>
+			  <div id="collapseFormat{{name}}" class="panel-collapse collapse">
+			    <div class="panel-body">
+                              <!-- Formats -->
+			      <table class="table table-striped">
+				<thead>
+				  <tr>
+				    <th>Format</th>
+				    <th>Count</th>
+				  </tr>
+				</thead>
+				<tbody>
+				  {{#formats}}
+				  <tr>
+				    <td>{{format}}</td>
+				    <td>{{count}}</td>
+				  </tr>
+				  {{/formats}}
+				</tbody>
+			      </table>
+
+			    </div>
+			  </div>
+			</div>
+			<div class="panel panel-default">
+			  <div class="panel-heading">
+			    <h4 class="panel-title">
+			      <a data-toggle="collapse" data-parent="#accordion" href="#collapseValues{{name}}">
+				Values
+			      </a>
+			    </h4>
+			  </div>
+			  <div id="collapseValues{{name}}" class="panel-collapse collapse">
+			    <div class="panel-body">
+			      <!-- Values -->
+			      <table class="table table-striped">
+				<thead>
+				  <tr>
+				    <th>Value</th>
+				    <th>Count</th>
+				  </tr>
+				</thead>
+				<tbody>
+				  {{#common-values}}
+				  <tr>
+				    <td>{{value}}</td>
+				    <td>{{count}}</td>
+				  </tr>
+				  {{/common-values}}
+				</tbody>
+			      </table>
+
+			    </div>
+			  </div>
+			</div>
+
+			
+
+
+                      </td>
+                    </tr>
+                    {{/fields}}
+		  </tbody>
+		</table>
+              </div>
+            </div>
+	  </div>
+	</div>
+
+	<!-- Bootstrap core JavaScript
+	     ================================================== -->
+	<!-- Placed at the end of the document so the pages load faster -->
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+	<script src="//netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+      </body>
+    </html>
