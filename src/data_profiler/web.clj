@@ -20,13 +20,15 @@
 (defn index [] 
   (using-layout :application (fn [_] "<p>Hello World</p>")))
 
+(defn displayable-string [x]
+  (cond (nil? x) "nil"
+        (empty? x) "\"\""
+        :else x))
+
 (defn render-formats [values]
   (->> (map profiler/codify-format values)
        frequencies
-       (map #(hash-map :format (let [x (first %)]
-                                 (cond (nil? x) "nil"
-                                       (empty? x) "\"\""
-                                       :else x)) 
+       (map #(hash-map :format (displayable-string (first %)) 
                        :count (second %)))
        (sort-by :count)
        reverse))
@@ -46,19 +48,23 @@
                                  :row-count num-rows
                                  :base-profile (profiler/base-profile rows)
                                  :fields (for [field (profiler/fields rows)]
-                                           (let [values (profiler/values rows)]
-                                            {:name       (name field)
-                                             :uniqueness (pct (count (distinct values)) num-rows)
-                                             :formats    (render-formats (map field rows))}))})})
+                                           (let [values (profiler/values field rows)]
+                                             {:name       (name field)
+                                              :uniqueness (pct (count (distinct values)) num-rows)
+                                              :common-values (->> (frequencies values)
+                                                                  (map (fn [[v c]] {:value (displayable-string v) 
+                                                                                    :count c}))
+                                                                  (sort-by :count)
+                                                                  reverse)
+                                              :formats    (render-formats values)}))})})
       {:status 404 
        :bosy (format "<h1>Cannot find and data for %s</h1>" source)})))
 
 (->> (:elements available-files) 
      csv/parse 
      (map :element)
-     set
-     count
-     (pct 10))
+     (frequencies)
+     (map (fn [[v c]] {:value v :count c})))
 
 (def router (wrap-reload (bidi/make-handler ["/" {"index.html" (index)
                                                   ["profile/" :file-name] show-profile}])))

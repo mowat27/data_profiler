@@ -98,6 +98,7 @@
                   <td>{{ name }}</td>
                   <td>{{ uniqueness }}%</td>
                   <td>
+                    <!-- Formats -->
                     <table class="table table-striped">
                       <thead>
                         <tr>
@@ -114,6 +115,26 @@
                         {{/formats}}
                       </tbody>
                     </table>
+
+                    <!-- Values -->
+                    <table class="table table-striped">
+                      <thead>
+                        <tr>
+                          <th>Value</th>
+                          <th>Count</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {{#common-values}}
+                          <tr>
+                            <td>{{value}}</td>
+                            <td>{{count}}</td>
+                          </tr>
+                        {{/common-values}}
+                      </tbody>
+                    </table>
+
+
                   </td>
                 </tr>
                 {{/fields}}
