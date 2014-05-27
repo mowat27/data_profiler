@@ -19,7 +19,12 @@
        (map (partial zipmap (map ->kebab-case-keyword header)) rows)))))
 
 (def examples
-  {:elements "http://introcs.cs.princeton.edu/java/data/elements.csv"})
+  {:elements "http://introcs.cs.princeton.edu/java/data/elements.csv"
+   :ip-by-country "/Users/adrian/Desktop/ip-by-country.csv"})
+
+(comment 
+  (take 3 (parse (:ip-by-country examples)))
+)
 
 
 

@@ -55,19 +55,38 @@
                                                                   (map (fn [[v c]] {:value (displayable-string v) 
                                                                                     :count c}))
                                                                   (sort-by :count)
-                                                                  reverse)
+                                                                  reverse
+                                                                  (take 5))
                                               :formats    (render-formats values)}))})})
       {:status 404 
        :bosy (format "<h1>Cannot find and data for %s</h1>" source)})))
 
+(defn show-rows [req]
+  (let [source (-> req :route-params :file-name)
+        uri (get available-files (keyword source))
+        rows (when uri (csv/parse uri))
+        ]
+    (if uri
+      {:status 200 
+       :body (let [fields [(profile/fields rows)]] 
+               (render-resource "views/layouts/rows.mustache"
+                                {:name source
+                                 :source source
+                                 :fields fields
+                                 :rows   (for [row rows]
+                                           {:values (map row fields)})}))}
+      {:status 404 :body (str "No data set named " source " available.")})))
+
+
+
 (->> (:elements available-files) 
-     csv/parse 
-     (map :element)
-     (frequencies)
-     (map (fn [[v c]] {:value v :count c})))
+     csv/parse
+     (take 2)
+     (map vals))
 
 (def router (wrap-reload (bidi/make-handler ["/" {"index.html" (index)
-                                                  ["profile/" :file-name] show-profile}])))
+                                                  "profile/" {:file-name show-profile
+                                                              [:file-name "/rows"] show-rows}}])))
 
 (defn -main [& args] 
   (let [port (or (first args) "8080")] 
