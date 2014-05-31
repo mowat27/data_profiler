@@ -1,6 +1,6 @@
 (ns data-profiler.web
-  (:require [ring.adapter.jetty :refer (run-jetty)]
-            [ring.middleware.reload :refer (wrap-reload)]
+  (:require [com.stuartsierra.component :refer (Lifecycle)]
+            [modular.bidi :refer (WebService)]
             [bidi.bidi :as bidi]
             [clostache.parser :refer (render-resource)]
             [data-profiler.csv :as csv]
@@ -8,17 +8,6 @@
             [clojure.pprint :refer (pprint)]))
 
 (def available-files csv/examples)
-
-(defn using-layout [layout handler & {:keys [status]}]
-  (let [response {:status (or status 200)}
-        layouts {:application "views/layouts/application.mustache"
-                 :dashboard "views/layouts/dashboard.mustache" }]
-    (fn [req] 
-      (assoc response :body (render-resource (layout layouts) 
-                                             {:content (handler req)})))))
-
-(defn index [] 
-  (using-layout :application (fn [_] "<p>Hello World</p>")))
 
 (defn displayable-string [x]
   (cond (nil? x) "nil"
@@ -63,32 +52,44 @@
 
 (defn show-rows [req]
   (let [source (-> req :route-params :file-name)
+        limit  (-> req :route-params :limit)
         uri (get available-files (keyword source))
-        rows (when uri (csv/parse uri))
-        ]
+        rows (when uri (csv/parse uri))]
     (if uri
       {:status 200 
-       :body (let [fields [(profile/fields rows)]] 
+       :body (let [fields (profiler/fields rows)
+                   values (for [row rows] {:values (map row fields)})] 
                (render-resource "views/layouts/rows.mustache"
                                 {:name source
-                                 :source source
+                                 :source uri
                                  :fields fields
-                                 :rows   (for [row rows]
-                                           {:values (map row fields)})}))}
+                                 :rows   (if (= "all" limit)
+                                           values
+                                           (take (Integer/parseInt limit) values))}))}
       {:status 404 :body (str "No data set named " source " available.")})))
 
+(defn make-handlers []
+  {:show-profile show-profile
+   :show-rows    show-rows})
 
+(defn make-routes [] 
+  ["/" 
+   {"profile/" {[:file-name]                :show-profile
+                [:file-name "/rows/" :limit] :show-rows}}])
 
-(->> (:elements available-files) 
-     csv/parse
-     (take 2)
-     (map vals))
+(bidi/match-route (make-routes) "/profile/elements")
 
-(def router (wrap-reload (bidi/make-handler ["/" {"index.html" (index)
-                                                  "profile/" {:file-name show-profile
-                                                              [:file-name "/rows"] show-rows}}])))
+(defn new-website
+  ([] 
+     (new-website ""))
+  ([uri-context] 
+     (reify
+       Lifecycle
+       (start [this] this)
+       (stop  [this] this)
 
-(defn -main [& args] 
-  (let [port (or (first args) "8080")] 
-    (run-jetty #'router {:port (Integer. port) :join? false})))
+       WebService
+       (ring-handler-map [this] (make-handlers))
+       (routes [this] (make-routes))
+       (uri-context [_] uri-context))))
 
