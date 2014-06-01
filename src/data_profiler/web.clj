@@ -7,6 +7,8 @@
             [data-profiler.profiler :as profiler]
             [clojure.pprint :refer (pprint)]))
 
+(declare make-routes)
+
 (def available-files csv/examples)
 
 (defn displayable-string [x]
@@ -27,7 +29,10 @@
 (def empty-view {})
 
 (defn add-name [m s]
-  (assoc m :name s))
+  (assoc m 
+    :name s
+    :profile-path  (bidi/path-for (make-routes) :show-profile :file-name s)
+    :examples-path (bidi/path-for (make-routes) :show-rows :file-name s :limit 10)))
 
 (defn add-source [m s]
   (assoc m :source s))
@@ -101,10 +106,8 @@
 
 (defn make-routes [] 
   ["/" 
-   {"profile/" {[:file-name]                :show-profile
+   {"profile/" {[:file-name]                 :show-profile
                 [:file-name "/rows/" :limit] :show-rows}}])
-
-(bidi/match-route (make-routes) "/profile/elements")
 
 (defn new-website
   ([] 

@@ -71,13 +71,15 @@
 		  <th>Name</th>
 		  <th>Source</th>
 		  <th>Row Count</th>
+                  <th>Data</th>
 		</tr>
 	      </thead>
               <tbody>
 		<tr>
-		  <td>{{ name }}</td>
+		  <td><a href={{profile-path}}>{{ name }}</a></td>
                   <td>{{ source }}</td>
 		  <td>{{ row-count }}</td>
+                  <td><a href="{{examples-path}}">First 10</a></td>
 		</tr>
               </tbody>
             </table>

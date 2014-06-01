@@ -64,23 +64,27 @@
             </ul>
           </div>
           <div class="col-sm-9 col-sm-offset-3 col-md-10 col-md-offset-2 main">
-            <h1 class="page-header">Profile Results</h1>
+            <h1 class="page-header">Examples</h1>
             <table class="table table-striped">
 	      <thead>
 		<tr>
 		  <th>Name</th>
 		  <th>Source</th>
+		  <th>Row Count</th>
+                  <th>Data</th>
 		</tr>
 	      </thead>
               <tbody>
 		<tr>
-		  <td>{{ name }}</td>
+		  <td><a href={{profile-path}}>{{ name }}</a></td>
                   <td>{{ source }}</td>
+		  <td>{{ row-count }}</td>
+                  <td><a href="{{examples-path}}">First 10</a></td>
 		</tr>
               </tbody>
             </table>
 
-            <h2 class="sub-header">Fields</h2>
+            <h2 class="sub-header">Rows</h2>
             <div class="table-responsive">
               <table class="table table-striped">
 		<thead>
