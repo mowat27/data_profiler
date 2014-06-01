@@ -19,6 +19,7 @@
                  [juxt.modular/bidi "0.4.0"]
                  [juxt.modular/clostache "0.1.0"]
                  [bidi "1.10.3"]
+                 [ring "1.3.0-RC1"]
                  [de.ubercode.clostache/clostache "1.4.0"]]
   :profiles {:dev {:dependencies [[ring/ring-devel "1.3.0-RC1"]
                                   [org.clojure/tools.namespace "0.2.4"]]
