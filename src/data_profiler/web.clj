@@ -24,6 +24,44 @@
 
 (defn pct [num-values total-values] (* 100 (float (/ num-values total-values))))
 
+(def empty-view {})
+
+(defn add-name [m s]
+  (assoc m :name s))
+
+(defn add-source [m s]
+  (assoc m :source s))
+
+(defn add-row-count [m x]
+  (assoc m :row-count (if (integer? x) x (count x))))
+
+(defn add-profile [m rows]
+  (assoc m :base-profile (profiler/base-profile rows)))
+
+(defn add-fields [m rows]
+  (assert (:row-count m) "Missing required value")
+  (assoc m :fields (for [field (profiler/fields rows)]
+                     (let [values (profiler/values field rows)]
+                       {:name       (name field)
+                        :uniqueness (pct (count (distinct values)) (:row-count m))
+                        :common-values (->> (frequencies values)
+                                            (map (fn [[v c]] {:value (displayable-string v) 
+                                                              :count c}))
+                                            (sort-by :count)
+                                            reverse
+                                            (take 5))
+                        :formats    (render-formats values)}))))
+
+(defn add-values [m rows limit]
+  (assoc m :rows (let [fields (profiler/fields rows)
+                       values (for [row rows] {:values (map row fields)})] 
+                   (if (= "all" limit)
+                     values
+                     (take (Integer/parseInt limit) values)))))
+
+(defn render-template [m template]
+  (render-resource template m))
+
 (defn show-profile [req]
   (let [source (-> req :route-params :file-name)
         uri (get available-files (keyword source))
@@ -31,24 +69,15 @@
     (if rows
       (let [num-rows (count rows)] 
         {:status 200 
-         :body (render-resource "views/layouts/dashboard.mustache"
-                                {:name source
-                                 :source uri
-                                 :row-count num-rows
-                                 :base-profile (profiler/base-profile rows)
-                                 :fields (for [field (profiler/fields rows)]
-                                           (let [values (profiler/values field rows)]
-                                             {:name       (name field)
-                                              :uniqueness (pct (count (distinct values)) num-rows)
-                                              :common-values (->> (frequencies values)
-                                                                  (map (fn [[v c]] {:value (displayable-string v) 
-                                                                                    :count c}))
-                                                                  (sort-by :count)
-                                                                  reverse
-                                                                  (take 5))
-                                              :formats    (render-formats values)}))})})
+         :body (-> empty-view 
+                   (add-name source)
+                   (add-source uri)
+                   (add-row-count num-rows)
+                   (add-profile rows)
+                   (add-fields rows)
+                   (render-template "views/layouts/dashboard.mustache"))})
       {:status 404 
-       :bosy (format "<h1>Cannot find and data for %s</h1>" source)})))
+       :body (format "<h1>Cannot find and data for %s</h1>" source)})))
 
 (defn show-rows [req]
   (let [source (-> req :route-params :file-name)
@@ -57,15 +86,13 @@
         rows (when uri (csv/parse uri))]
     (if uri
       {:status 200 
-       :body (let [fields (profiler/fields rows)
-                   values (for [row rows] {:values (map row fields)})] 
-               (render-resource "views/layouts/rows.mustache"
-                                {:name source
-                                 :source uri
-                                 :fields fields
-                                 :rows   (if (= "all" limit)
-                                           values
-                                           (take (Integer/parseInt limit) values))}))}
+       :body (-> empty-view
+                 (add-name source)
+                 (add-source uri)
+                 (add-row-count rows)
+                 (add-fields rows)
+                 (add-values rows limit)
+                 (render-template "views/layouts/rows.mustache"))}
       {:status 404 :body (str "No data set named " source " available.")})))
 
 (defn make-handlers []
