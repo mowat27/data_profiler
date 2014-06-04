@@ -13,30 +13,32 @@
 
 (def available-files csv/examples)
 
+(def m-csv-parse (memoize csv/parse))
+
 (defn displayable-string [x]
   (cond (nil? x) "nil"
         (empty? x) "\"\""
         :else x))
 
-(defn render-formats [field values]
+(defn render-formats [file-name field values]
   (->> (map profiler/codify-format values)
        frequencies
        (map (fn [[value c]] 
               {:format (displayable-string value) 
                :count c
                :show-path (format "%s?where=%s"
-                                  (bidi/path-for (make-routes) :show-rows :file-name "elements" :limit "all" )
+                                  (bidi/path-for (make-routes) :show-rows :file-name file-name :limit "all" )
                                   (with-out-str (pr [field "format" value])))}))
        (sort-by :count)
        reverse))
 
-(defn render-common-values [field values] 
+(defn render-common-values [file-name field values] 
   (->> (frequencies values)
        (map (fn [[value c]] 
               {:value (displayable-string value) 
                :count c
                :show-path (format "%s?where=%s"
-                                  (bidi/path-for (make-routes) :show-rows :file-name "elements" :limit "all" )
+                                  (bidi/path-for (make-routes) :show-rows :file-name file-name :limit "all" )
                                   (with-out-str (pr [field "value" value])))}))
        (sort-by :count)
        reverse
@@ -63,12 +65,14 @@
 
 (defn add-fields [m rows]
   (assert (:row-count m) "Missing required value")
+  (assert (:name m) "Missing required value")
   (assoc m :fields (for [field (profiler/fields rows)]
-                     (let [values (profiler/values field rows)]
+                     (let [values (profiler/values field rows)
+                           file-name (:name m)]
                        {:name       (name field)
                         :uniqueness (pct (count (distinct values)) (:row-count m))
-                        :common-values (render-common-values field values)
-                        :formats    (render-formats field values)}))))
+                        :common-values (render-common-values file-name field values)
+                        :formats       (render-formats file-name field values)}))))
 
 (defn apply-condition [[entity attr value] rows]
     (cond (= attr :format) (profiler/where profiler/codify-format (keyword entity) value rows)
@@ -89,7 +93,7 @@
 (defn show-profile [req]
   (let [source (-> req :route-params :file-name)
         uri (get available-files (keyword source))
-        rows (when uri (csv/parse uri))] 
+        rows (when uri (m-csv-parse uri))] 
     (if rows
       (let [num-rows (count rows)] 
         {:status 200 
@@ -107,7 +111,7 @@
   (let [source (-> req :route-params :file-name)
         limit  (-> req :route-params :limit)
         uri (get available-files (keyword source))
-        rows (when uri (csv/parse uri))]
+        rows (when uri (m-csv-parse uri))]
     (if uri
       {:status 200 
        :body 
