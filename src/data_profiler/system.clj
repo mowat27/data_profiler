@@ -5,14 +5,19 @@
             [clojure.java.io :as io]
             [clojure.tools.reader :refer (read)]
             [clojure.tools.reader.reader-types :refer (indexing-push-back-reader)]
-            [data-profiler.web :refer (new-website)]
+            [data-profiler 
+             [web :refer (new-website)]
+             [profiles :refer (new-profiles)]]
             [modular
              [http-kit :refer (new-webserver)]
              [ring :refer (new-ring-binder RingBinding)]
              [bidi :refer (new-router WebService)]
              [maker :refer (make)]
              [wire-up :refer (autowire-dependencies-satisfying)]
-             [clostache :refer (new-clostache-templater)]]))
+             [clostache :refer (new-clostache-templater)]
+             [datomic :refer (new-datomic-database
+                              new-datomic-connection
+                              new-datomic-schema)]]))
 
 (defn ^:private read-file
   [f]
@@ -47,12 +52,19 @@
 
 (defn new-system [config]
   (let [system-map (component/system-map 
-                    :webserver (new-webserver :port 3000)
-                    :router    (new-router)
+                    :webserver   (new-webserver :port 3000)
+                    :router      (new-router)
                     :ring-binder (new-ring-binder)
-                    :site        (new-website))]
+                    :site        (new-website)
+                    :database    (new-datomic-database :uri "datomic:mem://data_profiler"
+                                                       :ephemeral? true)
+                    :connection (new-datomic-connection)
+                    :schema     (new-datomic-schema "resources/database/schema.edn")
+                    :profiles   (new-profiles))]
     (component/system-using system-map
-                            (-> {:webserver [:ring-binder]
-                                 :ring-binder {:ring-handler :router}}
+                            (-> {:webserver   [:ring-binder]
+                                 :ring-binder {:ring-handler :router}
+                                 :schema      [:connection]
+                                 :connection  [:database]}
                                 (autowire-dependencies-satisfying system-map :router WebService)
                                 (autowire-dependencies-satisfying system-map :ring-binder RingBinding)))))

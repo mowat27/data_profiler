@@ -13,6 +13,8 @@
                  ;; Data
                  [camel-snake-kebab "0.1.5"]
                  [org.clojure/data.csv "0.1.2"]
+                 [com.datomic/datomic-free "0.9.4815"]
+                 [juxt.modular/datomic "0.2.0"]
 
                  ;; Web
                  [juxt.modular/http-kit "0.4.0"]
