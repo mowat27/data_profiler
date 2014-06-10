@@ -1,13 +1,18 @@
 (ns data-profiler.web
   (:require [com.stuartsierra.component :refer (Lifecycle)]
-            [modular.bidi :refer (WebService)]
+            [modular
+             [bidi :refer (WebService)]
+             [ring :refer (RingBinding)]]
             [bidi.bidi :as bidi]
             [ring.middleware.params :refer (wrap-params)]
             [clostache.parser :refer (render-resource)]
-            [data-profiler.csv :as csv]
-            [data-profiler.profiler :as profiler]
+            [data-profiler
+             [csv :as csv]
+             [profiler :as profiler]
+             [profiles :as profiles]]
             [clojure.pprint :refer (pprint)]
-            [clojure.edn :as edn]))
+            [clojure.edn :as edn]
+            [clojure.pprint :refer :all]))
 
 (declare make-routes)
 
@@ -81,8 +86,10 @@
 (defn add-values [m rows & {:keys [limit where]}]
   (assoc m :rows (let [fields (profiler/fields rows)
                        values (if where
-                                (for [row (apply-condition where rows)] {:values (map row fields)})
-                                (for [row rows] {:values (map row fields)}))] 
+                                (for [row (apply-condition where rows)] 
+                                  {:values (map row fields)})
+                                (for [row rows] 
+                                  {:values (map row fields)}))] 
                    (if (= "all" limit)
                      values
                      (take (Integer/parseInt limit) values)))))
@@ -126,26 +133,49 @@
              (render-template "views/layouts/rows.mustache")))}
       {:status 404 :body (str "No data set named " source " available.")})))
 
+(defn add-available-profiles [m model]
+  (assoc m :profiles 
+         (for [[_ name source] (profiles/all model)] 
+           (-> {}
+               (add-name name)
+               (add-source source)))))
+
+(defn index [req]
+  {:status 200 
+   :body   (-> empty-view
+               (add-available-profiles (:profiles req))
+               (render-template "views/layouts/index.mustache"))})
+
 (defn make-handlers []
-  {:show-profile show-profile
+  {:index        index
+   :show-profile show-profile
    :show-rows    (wrap-params show-rows)})
 
 (defn make-routes [] 
   ["/" 
-   {"profile/" {[:file-name]                 :show-profile
+   {"" :index
+    "profile/" {[:file-name]                 :show-profile
                 [:file-name "/rows/" :limit] :show-rows}}])
+
+
+(defrecord Website [uri-context]
+  Lifecycle
+  (start [this] this)
+  (stop  [this] this)
+
+  RingBinding
+  (ring-binding [this req] 
+    (assoc req :profiles (:profiles this)))
+
+  WebService
+  (ring-handler-map [this] (make-handlers))
+  (routes [this] (make-routes))
+  (uri-context [_] uri-context))
+
 
 (defn new-website
   ([] 
      (new-website ""))
   ([uri-context] 
-     (reify
-       Lifecycle
-       (start [this] this)
-       (stop  [this] this)
-
-       WebService
-       (ring-handler-map [this] (make-handlers))
-       (routes [this] (make-routes))
-       (uri-context [_] uri-context))))
+     (->Website uri-context)))
 

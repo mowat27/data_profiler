@@ -65,6 +65,7 @@
                             (-> {:webserver   [:ring-binder]
                                  :ring-binder {:ring-handler :router}
                                  :schema      [:connection]
-                                 :connection  [:database]}
+                                 :connection  [:database]
+                                 :site        [:profiles]}
                                 (autowire-dependencies-satisfying system-map :router WebService)
                                 (autowire-dependencies-satisfying system-map :ring-binder RingBinding)))))
