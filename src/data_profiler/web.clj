@@ -7,7 +7,6 @@
             [ring.middleware.params :refer (wrap-params)]
             [clostache.parser :refer (render-resource)]
             [data-profiler
-             [csv :as csv]
              [profiler :as profiler]
              [profiles :as profiles]]
             [clojure.pprint :refer (pprint)]
@@ -16,42 +15,43 @@
 
 (declare make-routes)
 
-(def available-files csv/examples)
-
-(def m-csv-parse (memoize csv/parse))
+(defn assert-required-keys! [m & required-keys]
+  (doseq [key required-keys]
+    (assert (key m) (str "Missing required value " key))))
 
 (defn displayable-string [x]
   (cond (nil? x) "nil"
         (empty? x) "\"\""
         :else x))
 
-(defn render-formats [file-name field values]
-  (->> (map profiler/codify-format values)
-       frequencies
-       (map (fn [[value c]] 
-              {:format (displayable-string value) 
+(defn show-rows-path [file-name field attr value]
+  (format "%s?where=%s"
+          (bidi/path-for (make-routes) :show-rows :file-name file-name :limit "all" )
+          (with-out-str (pr [field attr value]))))
+
+(defn render-formats [{file-name :name :as m} field]
+  (->> (get-in m [:formats field])
+       (map (fn [{fmt :value c :count}] 
+              {:format (displayable-string fmt)
                :count c
-               :show-path (format "%s?where=%s"
-                                  (bidi/path-for (make-routes) :show-rows :file-name file-name :limit "all" )
-                                  (with-out-str (pr [field "format" value])))}))
-       (sort-by :count)
-       reverse))
+               :show-path (show-rows-path file-name field :format fmt)}))))
 
-(defn render-common-values [file-name field values] 
-  (->> (frequencies values)
-       (map (fn [[value c]] 
-              {:value (displayable-string value) 
+(defn render-common-values [{file-name :name :as m} field limit] 
+  (->> (get-in m [:values field])
+       (take limit)
+       (map (fn [{val :value c :count}]
+              {:value (displayable-string val)
                :count c
-               :show-path (format "%s?where=%s"
-                                  (bidi/path-for (make-routes) :show-rows :file-name file-name :limit "all" )
-                                  (with-out-str (pr [field "value" value])))}))
-       (sort-by :count)
-       reverse
-       (take 5)))
+               :show-path (show-rows-path file-name field :value val)}))))
 
-(defn pct [num-values total-values] (* 100 (float (/ num-values total-values))))
-
-(def empty-view {})
+(defn add-fields [m]
+  (assert-required-keys! m :field-names :name :row-count)
+  (assoc m :fields (for [field (:field-names m)]
+                     (let [file-name (:name m)]
+                       {:name       (name field)
+                        :uniqueness    (get-in m [:uniqueness field])
+                        :common-values (render-common-values m field 10)
+                        :formats       (render-formats m field)}))))
 
 (defn add-name [m s]
   (assoc m 
@@ -62,29 +62,14 @@
 (defn add-source [m s]
   (assoc m :source s))
 
-(defn add-row-count [m x]
-  (assoc m :row-count (if (integer? x) x (count x))))
-
-(defn add-profile [m rows]
-  (assoc m :base-profile (profiler/base-profile rows)))
-
-(defn add-fields [m rows]
-  (assert (:row-count m) "Missing required value")
-  (assert (:name m) "Missing required value")
-  (assoc m :fields (for [field (profiler/fields rows)]
-                     (let [values (profiler/values field rows)
-                           file-name (:name m)]
-                       {:name       (name field)
-                        :uniqueness (pct (count (distinct values)) (:row-count m))
-                        :common-values (render-common-values file-name field values)
-                        :formats       (render-formats file-name field values)}))))
-
 (defn apply-condition [[entity attr value] rows]
     (cond (= attr :format) (profiler/where profiler/codify-format (keyword entity) value rows)
           (= attr :value)  (filter #(= value (get % (keyword entity))) rows)))
 
-(defn add-values [m rows & {:keys [limit where]}]
-  (assoc m :rows (let [fields (profiler/fields rows)
+(defn add-values [m & {:keys [limit where]}]
+  (assert-required-keys! m :field-names :rows)
+  (assoc m :rows (let [fields (:field-names m)
+                       rows (:rows m)
                        values (if where
                                 (for [row (apply-condition where rows)] 
                                   {:values (map row fields)})
@@ -98,40 +83,27 @@
   (render-resource template m))
 
 (defn show-profile [req]
-  (let [source (-> req :route-params :file-name)
-        uri (get available-files (keyword source))
-        rows (when uri (m-csv-parse uri))] 
-    (if rows
-      (let [num-rows (count rows)] 
-        {:status 200 
-         :body (-> empty-view 
-                   (add-name source)
-                   (add-source uri)
-                   (add-row-count num-rows)
-                   (add-profile rows)
-                   (add-fields rows)
-                   (render-template "views/layouts/dashboard.mustache"))})
-      {:status 404 
-       :body (format "<h1>Cannot find and data for %s</h1>" source)})))
+  (let [source (-> req :route-params :file-name)] 
+    {:status 200 
+     :body (-> (profiler/profile source) 
+               (add-name source)
+               (add-source "TODO")
+               add-fields
+               (render-template "views/layouts/dashboard.mustache"))}))
 
 (defn show-rows [{:keys [query-params] :as req}]
   (let [source (-> req :route-params :file-name)
-        limit  (-> req :route-params :limit)
-        uri (get available-files (keyword source))
-        rows (when uri (m-csv-parse uri))]
-    (if uri
-      {:status 200 
-       :body 
-       (let [conditions (when (get query-params "where")
-                          ((fn [[e a v]] [(keyword e) (keyword a) v]) (edn/read-string (get query-params "where"))))] 
-         (-> empty-view
-             (add-name source)
-             (add-source uri)
-             (add-row-count rows)
-             (add-fields rows)
-             (add-values rows :limit limit :where conditions)
-             (render-template "views/layouts/rows.mustache")))}
-      {:status 404 :body (str "No data set named " source " available.")})))
+        limit  (-> req :route-params :limit)]
+    {:status 200 
+     :body 
+     (let [conditions (when (get query-params "where")
+                        ((fn [[e a v]] [(keyword e) (keyword a) v]) (edn/read-string (get query-params "where"))))] 
+       (-> (profiler/profile source)
+           (add-name source)
+           (add-source "TODO")
+           add-fields
+           (add-values :limit limit :where conditions)
+           (render-template "views/layouts/rows.mustache")))}))
 
 (defn add-available-profiles [m model]
   (assoc m :profiles 
@@ -142,7 +114,7 @@
 
 (defn index [req]
   {:status 200 
-   :body   (-> empty-view
+   :body   (-> {}
                (add-available-profiles (:profiles req))
                (render-template "views/layouts/index.mustache"))})
 

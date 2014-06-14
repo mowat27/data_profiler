@@ -4,7 +4,8 @@
             [clojure.core.matrix.operators :refer :all]
             [clojure.java.io :as io]
             [clojure.data.csv :as csv]
-            [camel-snake-kebab :refer (->kebab-case-keyword)]))
+            [camel-snake-kebab :refer (->kebab-case-keyword)]
+            [data-profiler.profiler]))
 
 (defn fill-empties [prefix coll] 
   (map 
@@ -26,9 +27,3 @@
 (def examples
   {:elements "http://introcs.cs.princeton.edu/java/data/elements.csv"
    :ip-by-country "/Users/adrian/Desktop/ip-by-country.csv"})
-
-
-(-> (m-parse (:ip-by-country examples))
-    :matrix
-    (get-column 2)
-    count)
