@@ -62,19 +62,16 @@
 (defn add-source [m s]
   (assoc m :source s))
 
-(defn apply-condition [[entity attr value] rows]
-    (cond (= attr :format) (profiler/where profiler/codify-format (keyword entity) value rows)
-          (= attr :value)  (filter #(= value (get % (keyword entity))) rows)))
 
 (defn add-values [m & {:keys [limit where]}]
   (assert-required-keys! m :field-names :rows)
-  (assoc m :rows (let [fields (:field-names m)
-                       rows (:rows m)
+  (assoc m :rows (let [{:keys [:field-names :rows]} m
+                       rows (map (partial zipmap field-names) rows)
                        values (if where
-                                (for [row (apply-condition where rows)] 
-                                  {:values (map row fields)})
+                                (for [row (profiler/apply-condition where rows)] 
+                                  {:values (map row field-names)})
                                 (for [row rows] 
-                                  {:values (map row fields)}))] 
+                                  {:values (map row field-names)}))] 
                    (if (= "all" limit)
                      values
                      (take (Integer/parseInt limit) values)))))

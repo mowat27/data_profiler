@@ -20,7 +20,8 @@
 
 (def examples
   {:elements "http://introcs.cs.princeton.edu/java/data/elements.csv"
-   :ip-by-country "/Users/adrian/Desktop/ip-by-country.csv"})
+   :ip-by-country "/Users/adrian/Desktop/ip-by-country.csv"
+   :crime  "/Users/adrian/Desktop/crime_incidents_2013_CSV.csv"})
 
 (comment 
   (take 3 (parse (:ip-by-country examples)))

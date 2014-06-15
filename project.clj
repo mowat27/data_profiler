@@ -16,6 +16,7 @@
                  [com.datomic/datomic-free "0.9.4815"]
                  [juxt.modular/datomic "0.2.0"]
                  [net.mikera/core.matrix "0.24.0"]
+                 [net.mikera/vectorz-clj "0.22.0"]
 
                  ;; Web
                  [juxt.modular/http-kit "0.4.0"]
