@@ -59,9 +59,6 @@
     :profile-path  (bidi/path-for (make-routes) :show-profile :profile-name profile-name)
     :examples-path (bidi/path-for (make-routes) :show-rows :profile-name profile-name :limit 10)))
 
-(defn add-uri [m s]
-  (assoc m :uri s))
-
 (defn add-values [m & {:keys [limit where]}]
   (assert-required-keys! m "add-values" :field-names :rows)
   (assoc m :rows (let [{:keys [:field-names :rows]} m
@@ -84,7 +81,7 @@
      :body (-> (profiler/profile profile-name) 
                add-profile-paths
                add-fields
-               (render-template "views/layouts/dashboard.mustache"))}))
+               (render-template "views/dashboard.mustache"))}))
 
 (defn show-rows [{:keys [query-params] :as req}]
   (let [{:keys [profile-name limit]} (:route-params req)]
@@ -96,7 +93,7 @@
            add-profile-paths 
            add-fields
            (add-values :limit limit :where conditions)
-           (render-template "views/layouts/rows.mustache")))}))
+           (render-template "views/rows.mustache")))}))
 
 (defn add-available-profiles [m model]
   (assoc m :profiles 
@@ -109,7 +106,7 @@
   {:status 200 
    :body   (-> {}
                (add-available-profiles (:profiles req))
-               (render-template "views/layouts/index.mustache"))})
+               (render-template "views/index.mustache"))})
 
 (defn make-handlers []
   {:index        index
