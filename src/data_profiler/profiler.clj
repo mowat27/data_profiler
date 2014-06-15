@@ -62,12 +62,13 @@
      :row-count   (m/row-count matrix)
      :field-names headers}))
 
-(defn profile [source]
-  (let [m (base-profile source)]
-    (-> m
-        (assoc :values (calculate-frequencies m))
-        (assoc :formats (calculate-frequencies m codify-format))
-        (assoc :uniqueness (calculate-uniqueness m)))))
+(def profile 
+  (memoize (fn [source]
+             (let [m (base-profile source)]
+               (-> m
+                   (assoc :values (calculate-frequencies m))
+                   (assoc :formats (calculate-frequencies m codify-format))
+                   (assoc :uniqueness (calculate-uniqueness m)))))))
 
 (comment
   
