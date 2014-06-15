@@ -54,17 +54,19 @@
                    [field (pct (:row-count m) (count (distinct values)))])
                 (:columns m))))
 
-(defn base-profile [source]
-  (let [{:keys [headers matrix]} (parse source)
-        _ (assert (not (nil? matrix)) (format "Could not parse source: '%s'" source))]
-    {:columns     (zipmap headers (m/columns matrix))
+(defn base-profile [profile-name]
+  (let [{:keys [headers matrix]} (parse profile-name)
+        _ (assert (not (nil? matrix)) (format "Could not parse profile-name: '%s'" profile-name))]
+    {:profile-name profile-name
+     :uri         (get available-files (keyword profile-name))
+     :columns     (zipmap headers (m/columns matrix))
      :rows        (m/rows matrix)
      :row-count   (m/row-count matrix)
      :field-names headers}))
 
 (def profile 
-  (memoize (fn [source]
-             (let [m (base-profile source)]
+  (memoize (fn [profile-name]
+             (let [m (base-profile profile-name)]
                (-> m
                    (assoc :values (calculate-frequencies m))
                    (assoc :formats (calculate-frequencies m codify-format))

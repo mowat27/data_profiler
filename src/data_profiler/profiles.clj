@@ -1,12 +1,13 @@
 (ns data-profiler.profiles
   (:require [com.stuartsierra.component :as component]
-            [datomic.api :as d]))
+            [datomic.api :as d]
+            [data-profiler.csv :as csv]))
 
 (defn all [this]
-  (d/q '[:find ?e ?name ?source 
+  (d/q '[:find ?e ?name ?uri
          :where 
          [?e :profile/name ?name]
-         [?e :profile/source ?source]] 
+         [?e :profile/uri ?uri]] 
        (d/db (:connection this))))
 
 (defrecord Profiles []
@@ -15,12 +16,10 @@
     (d/transact 
      (d/connect (get-in this [:database :uri])) 
      (mapcat vec 
-             (for [[e-name e-source] 
-                   {:elements "http://introcs.cs.princeton.edu/java/data/elements.csv"
-                    :ip-by-country "/Users/adrian/Desktop/ip-by-country.csv"}]
+             (for [[e-name e-uri] csv/examples]
                (let [entity (d/tempid :db.part/user)] 
                  [[:db/add entity :profile/name (name e-name)]
-                  [:db/add entity :profile/source e-source]]))))
+                  [:db/add entity :profile/uri e-uri]]))))
     this)
   (stop [this] this))
 

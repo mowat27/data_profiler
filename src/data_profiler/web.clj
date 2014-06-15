@@ -15,56 +15,55 @@
 
 (declare make-routes)
 
-(defn assert-required-keys! [m & required-keys]
+(defn assert-required-keys! [m code-ref & required-keys]
   (doseq [key required-keys]
-    (assert (key m) (str "Missing required value " key))))
+    (assert (key m) (format "Missing required attribute in %s '%s'" code-ref key))))
 
 (defn displayable-string [x]
   (cond (nil? x) "nil"
         (empty? x) "\"\""
         :else x))
 
-(defn show-rows-path [file-name field attr value]
+(defn show-rows-path [profile-name field attr value]
   (format "%s?where=%s"
-          (bidi/path-for (make-routes) :show-rows :file-name file-name :limit "all" )
+          (bidi/path-for (make-routes) :show-rows :profile-name profile-name :limit "all" )
           (with-out-str (pr [field attr value]))))
 
-(defn render-formats [{file-name :name :as m} field]
+(defn render-formats [{profile-name :profile-name :as m} field]
   (->> (get-in m [:formats field])
        (map (fn [{fmt :value c :count}] 
               {:format (displayable-string fmt)
                :count c
-               :show-path (show-rows-path file-name field :format fmt)}))))
+               :show-path (show-rows-path profile-name field :format fmt)}))))
 
-(defn render-common-values [{file-name :name :as m} field limit] 
+(defn render-common-values [{:keys [profile-name] :as m} field limit] 
   (->> (get-in m [:values field])
        (take limit)
        (map (fn [{val :value c :count}]
               {:value (displayable-string val)
                :count c
-               :show-path (show-rows-path file-name field :value val)}))))
+               :show-path (show-rows-path profile-name field :value val)}))))
 
 (defn add-fields [m]
-  (assert-required-keys! m :field-names :name :row-count)
+  (assert-required-keys! m "add-fields" :field-names :profile-name :row-count)
   (assoc m :fields (for [field (:field-names m)]
-                     (let [file-name (:name m)]
+                     (let [profile-name (:profile-name m)]
                        {:name       (name field)
                         :uniqueness    (get-in m [:uniqueness field])
                         :common-values (render-common-values m field 10)
                         :formats       (render-formats m field)}))))
 
-(defn add-name [m s]
+(defn add-profile-paths [{:keys [profile-name] :as m}]
+  (assert-required-keys! m "add-profile-paths" :profile-name)
   (assoc m 
-    :name s
-    :profile-path  (bidi/path-for (make-routes) :show-profile :file-name s)
-    :examples-path (bidi/path-for (make-routes) :show-rows :file-name s :limit 10)))
+    :profile-path  (bidi/path-for (make-routes) :show-profile :profile-name profile-name)
+    :examples-path (bidi/path-for (make-routes) :show-rows :profile-name profile-name :limit 10)))
 
-(defn add-source [m s]
-  (assoc m :source s))
-
+(defn add-uri [m s]
+  (assoc m :uri s))
 
 (defn add-values [m & {:keys [limit where]}]
-  (assert-required-keys! m :field-names :rows)
+  (assert-required-keys! m "add-values" :field-names :rows)
   (assoc m :rows (let [{:keys [:field-names :rows]} m
                        rows (map (partial zipmap field-names) rows)
                        values (if where
@@ -80,34 +79,31 @@
   (render-resource template m))
 
 (defn show-profile [req]
-  (let [source (-> req :route-params :file-name)] 
+  (let [profile-name (-> req :route-params :profile-name)] 
     {:status 200 
-     :body (-> (profiler/profile source) 
-               (add-name source)
-               (add-source "TODO")
+     :body (-> (profiler/profile profile-name) 
+               add-profile-paths
                add-fields
                (render-template "views/layouts/dashboard.mustache"))}))
 
 (defn show-rows [{:keys [query-params] :as req}]
-  (let [source (-> req :route-params :file-name)
-        limit  (-> req :route-params :limit)]
+  (let [{:keys [profile-name limit]} (:route-params req)]
     {:status 200 
      :body 
      (let [conditions (when (get query-params "where")
                         ((fn [[e a v]] [(keyword e) (keyword a) v]) (edn/read-string (get query-params "where"))))] 
-       (-> (profiler/profile source)
-           (add-name source)
-           (add-source "TODO")
+       (-> (profiler/profile profile-name)
+           add-profile-paths 
            add-fields
            (add-values :limit limit :where conditions)
            (render-template "views/layouts/rows.mustache")))}))
 
 (defn add-available-profiles [m model]
   (assoc m :profiles 
-         (for [[_ name source] (profiles/all model)] 
-           (-> {}
-               (add-name name)
-               (add-source source)))))
+         (for [[_ profile-name uri] (profiles/all model)] 
+           (-> {:profile-name profile-name
+                :uri uri}
+               add-profile-paths))))
 
 (defn index [req]
   {:status 200 
@@ -123,8 +119,8 @@
 (defn make-routes [] 
   ["/" 
    {"" :index
-    "profile/" {[:file-name]                 :show-profile
-                [:file-name "/rows/" :limit] :show-rows}}])
+    "profile/" {[:profile-name]                 :show-profile
+                [:profile-name "/rows/" :limit] :show-rows}}])
 
 
 (defrecord Website [uri-context]
