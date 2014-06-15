@@ -1,19 +1,40 @@
 (ns data-profiler.web
-  (:require [com.stuartsierra.component :refer (Lifecycle)]
-            [modular
-             [bidi :refer (WebService)]
-             [ring :refer (RingBinding)]]
-            [bidi.bidi :as bidi]
-            [ring.middleware.params :refer (wrap-params)]
+  (:require [bidi.bidi :as bidi]
+            [clojure.edn :as edn]
+            [clojure.java.io :as io]
+            [clojure.pprint :refer (pprint)]
+            [clojure.string :as str]
             [clostache.parser :refer (render-resource)]
+            [com.stuartsierra.component :refer (Lifecycle)]
             [data-profiler
              [profiler :as profiler]
              [profiles :as profiles]]
-            [clojure.pprint :refer (pprint)]
-            [clojure.edn :as edn]
-            [clojure.pprint :refer :all]))
+            [modular
+             [bidi :refer (WebService)]
+             [ring :refer (RingBinding)]]
+            [ring.middleware.params :refer (wrap-params)]))
 
 (declare make-routes)
+
+(defn render-page
+  "Pass in the template name (a string, sans its .mustache
+filename extension), the data for the template (a map), and a list of
+partials (keywords) corresponding to like-named template filenames."
+  [template data partials]
+  (render-resource
+    (str "views/" template ".mustache")
+    data
+    (reduce (fn [accum pt] ;; "pt" is the name (as a keyword) of the partial.
+              (assoc accum pt (slurp (io/resource (str "views/"
+                                                       (name pt)
+                                                       ".mustache")))))
+            {}
+            partials)))
+
+(defn render-template [m template & {:keys [partials]}]
+  (render-page (str/replace template #"(.+\/)*([^\.]+)(\.mustache)*" "$2") 
+                   m
+                   (concat [:header :footer] partials)))
 
 (defn assert-required-keys! [m code-ref & required-keys]
   (doseq [key required-keys]
@@ -72,28 +93,26 @@
                      values
                      (take (Integer/parseInt limit) values)))))
 
-(defn render-template [m template]
-  (render-resource template m))
-
 (defn show-profile [req]
   (let [profile-name (-> req :route-params :profile-name)] 
     {:status 200 
      :body (-> (profiler/profile profile-name) 
                add-profile-paths
                add-fields
-               (render-template "views/dashboard.mustache"))}))
+               (render-template "dashboard.mustache" :partials #{:sidebar}))}))
 
 (defn show-rows [{:keys [query-params] :as req}]
-  (let [{:keys [profile-name limit]} (:route-params req)]
+  (let [{:keys [profile-name limit]} (:route-params req)
+        parse-query (fn [[e a v]] [(keyword e) (keyword a) v]) ]
     {:status 200 
      :body 
      (let [conditions (when (get query-params "where")
-                        ((fn [[e a v]] [(keyword e) (keyword a) v]) (edn/read-string (get query-params "where"))))] 
+                        (parse-query (edn/read-string (get query-params "where"))))] 
        (-> (profiler/profile profile-name)
            add-profile-paths 
            add-fields
            (add-values :limit limit :where conditions)
-           (render-template "views/rows.mustache")))}))
+           (render-template "rows.mustache" :partials #{:sidebar})))}))
 
 (defn add-available-profiles [m model]
   (assoc m :profiles 
@@ -106,7 +125,7 @@
   {:status 200 
    :body   (-> {}
                (add-available-profiles (:profiles req))
-               (render-template "views/index.mustache"))})
+               (render-template "index.mustache"))})
 
 (defn make-handlers []
   {:index        index
